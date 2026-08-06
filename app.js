@@ -15,6 +15,7 @@ const tools = [
 ];
 
 let db;
+let memoryFiles = [];
 let selectedTool = tools[0];
 let liveChannel;
 let activeSessionCode = '';
@@ -28,11 +29,21 @@ function toast(message) {
 }
 
 function openDb() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    if (!('indexedDB' in window)) {
+      toast('IndexedDB is unavailable, using temporary memory storage');
+      resolve(false);
+      return;
+    }
+
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: 'code' });
-    request.onsuccess = () => { db = request.result; resolve(db); };
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => { db = request.result; resolve(true); };
+    request.onerror = () => {
+      console.warn('IndexedDB failed, falling back to memory storage', request.error);
+      toast('Storage blocked, using temporary memory storage');
+      resolve(false);
+    };
   });
 }
 
@@ -41,6 +52,10 @@ function store(mode = 'readonly') {
 }
 
 function saveRecord(record) {
+  if (!db) {
+    memoryFiles = memoryFiles.filter((file) => file.code !== record.code).concat(record);
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
     const request = store('readwrite').put(record);
     request.onsuccess = resolve;
@@ -49,6 +64,7 @@ function saveRecord(record) {
 }
 
 function getRecord(code) {
+  if (!db) return Promise.resolve(memoryFiles.find((file) => file.code === code));
   return new Promise((resolve, reject) => {
     const request = store().get(code);
     request.onsuccess = () => resolve(request.result);
@@ -57,6 +73,10 @@ function getRecord(code) {
 }
 
 function deleteRecord(code) {
+  if (!db) {
+    memoryFiles = memoryFiles.filter((file) => file.code !== code);
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
     const request = store('readwrite').delete(code);
     request.onsuccess = resolve;
@@ -65,6 +85,7 @@ function deleteRecord(code) {
 }
 
 function getAllRecords() {
+  if (!db) return Promise.resolve(memoryFiles);
   return new Promise((resolve, reject) => {
     const request = store().getAll();
     request.onsuccess = () => resolve(request.result);
@@ -136,9 +157,21 @@ async function updateStats() {
   $('historyCount').textContent = localStorage.getItem('shareflow-history') || 0;
 }
 
+function showSelectedFiles(fileList) {
+  const files = [...fileList];
+  if (!files.length) {
+    $('selectedFiles').className = 'empty';
+    $('selectedFiles').textContent = 'No files selected yet. Click the upload box or drag files into it.';
+    return;
+  }
+
+  $('selectedFiles').className = 'results';
+  $('selectedFiles').innerHTML = files.map((file) => `<article class="file-card"><strong>${file.name}</strong><span class="file-meta">Ready to upload · ${file.type || 'Unknown type'} · ${formatSize(file.size)}</span></article>`).join('');
+}
+
 async function uploadFiles(fileList) {
   const files = [...fileList];
-  if (!files.length) return;
+  if (!files.length) return toast('Select or drag files before uploading');
   $('uploadResults').innerHTML = '';
 
   for (const blob of files) {
@@ -279,6 +312,7 @@ async function convertFile() {
 }
 
 function bindEvents() {
+  $('fileInput').onchange = () => showSelectedFiles($('fileInput').files);
   $('saveFiles').onclick = () => uploadFiles($('fileInput').files);
   $('retrieveBtn').onclick = retrieveFile;
   $('retrieveCode').oninput = (event) => { event.target.value = event.target.value.toUpperCase(); };
@@ -311,6 +345,8 @@ function bindEvents() {
   $('dropZone').ondrop = (event) => {
     event.preventDefault();
     $('dropZone').classList.remove('hover');
+    $('fileInput').files = event.dataTransfer.files;
+    showSelectedFiles(event.dataTransfer.files);
     uploadFiles(event.dataTransfer.files);
   };
 
@@ -337,9 +373,10 @@ function bindEvents() {
   });
 }
 
+renderTools();
+bindEvents();
+
 openDb().then(() => {
-  renderTools();
-  bindEvents();
   updateStats();
 
   const params = new URLSearchParams(location.search);
