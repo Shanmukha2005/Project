@@ -311,8 +311,23 @@ async function convertFile() {
   toast('Conversion ready');
 }
 
+
+function focusSection(id) {
+  const target = $(id);
+  if (!target) return;
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  target.classList.add('panel-active');
+  setTimeout(() => target.classList.remove('panel-active'), 1800);
+
+  if (id === 'upload') toast('Upload section opened — choose or drag files now');
+  if (id === 'retrieve') toast('Retrieve section opened — enter your six-character code');
+  if (id === 'live') toast('Live sharing opened — create or join a session');
+  if (id === 'convert') toast('Converter opened — select a tool and file');
+}
+
 function bindEvents() {
   $('fileInput').onchange = () => showSelectedFiles($('fileInput').files);
+  $('browseFiles').onclick = () => $('fileInput').click();
   $('saveFiles').onclick = () => uploadFiles($('fileInput').files);
   $('retrieveBtn').onclick = retrieveFile;
   $('retrieveCode').oninput = (event) => { event.target.value = event.target.value.toUpperCase(); };
@@ -349,6 +364,19 @@ function bindEvents() {
     showSelectedFiles(event.dataTransfer.files);
     uploadFiles(event.dataTransfer.files);
   };
+
+  document.querySelectorAll('[data-focus]').forEach((button) => {
+    button.addEventListener('click', () => focusSection(button.dataset.focus));
+  });
+
+  document.querySelectorAll('[data-panel]').forEach((panel) => {
+    panel.addEventListener('click', (event) => {
+      if (event.target.closest('button, a, input, textarea, label, select')) return;
+      panel.classList.add('panel-active');
+      setTimeout(() => panel.classList.remove('panel-active'), 1200);
+      toast(`${panel.dataset.panel} is active`);
+    });
+  });
 
   document.addEventListener('click', async (event) => {
     if (event.target.dataset.copyCode) {

@@ -29,15 +29,23 @@
         <article class="stat"><strong id="sessionStatus">Offline</strong><span>Live session</span></article>
       </section>
 
+      <section class="section module-launcher" aria-label="ShareFlow actions">
+        <button class="module-card" data-focus="upload"><strong>⬆️ Upload Files</strong><span>Select or drag files and receive retrieval codes.</span></button>
+        <button class="module-card" data-focus="retrieve"><strong>🔎 Retrieve Files</strong><span>Enter a code to preview, download, copy, or delete.</span></button>
+        <button class="module-card" data-focus="live"><strong>⚡ Live Sharing</strong><span>Create or join a live session for file and clipboard transfer.</span></button>
+        <button class="module-card" data-focus="convert"><strong>🔄 Convert Files</strong><span>Open the converter suite and choose a tool.</span></button>
+      </section>
+
       <section class="section grid two" id="upload">
-        <article class="panel">
+        <article class="panel interactive-panel" data-panel="Upload files">
           <p class="eyebrow">File sharing</p><h2>Upload Files</h2>
           <label class="drop-zone" id="dropZone"><input id="fileInput" type="file" multiple /> <span>📁 Drag files here or click to browse</span><small>Images, videos, PDFs, Office, ZIP, audio, or any file</small></label>
+          <button class="btn neutral full" id="browseFiles" type="button">Choose files from device</button>
           <div id="selectedFiles" class="empty">No files selected yet. Click the upload box or drag files into it.</div>
           <button class="btn primary full" id="saveFiles">Upload & generate retrieval codes</button>
           <div id="uploadResults" class="results"></div>
         </article>
-        <article class="panel" id="retrieve">
+        <article class="panel interactive-panel" id="retrieve" data-panel="Retrieve files">
           <p class="eyebrow">Retrieve</p><h2>Download by Code</h2>
           <div class="inline-form"><input id="retrieveCode" placeholder="Enter code e.g. AB34ZX" maxlength="6" /><button class="btn primary" id="retrieveBtn">Retrieve</button></div>
           <div id="retrieveResult" class="results empty">No file loaded yet.</div>
@@ -45,7 +53,7 @@
       </section>
 
       <section class="section grid two" id="live">
-        <article class="panel live-panel">
+        <article class="panel live-panel interactive-panel" data-panel="Live sharing">
           <p class="eyebrow">Live sharing</p><h2>AirDrop-style Session</h2>
           <div class="inline-form"><input id="sessionCode" placeholder="Session code" maxlength="6" /><button class="btn primary" id="createSession">Create</button><button class="btn neutral" id="joinSession">Join</button></div>
           <div class="session-card"><strong id="activeSession">No session</strong><span id="sessionHint">Create a session, then open another tab and join with the same code.</span></div>
@@ -53,7 +61,7 @@
           <textarea id="clipboardText" placeholder="Type clipboard text to broadcast live..."></textarea>
           <button class="btn primary full" id="sendClipboard">Send Clipboard</button>
         </article>
-        <article class="panel">
+        <article class="panel interactive-panel" data-panel="Live inbox">
           <p class="eyebrow">Incoming</p><h2>Live Inbox</h2>
           <div id="liveInbox" class="results empty">No live files or clipboard messages yet.</div>
         </article>
@@ -63,7 +71,7 @@
         <div class="section-heading"><p class="eyebrow">Converters</p><h2>PDF & File Converter Suite</h2><p>Choose a tool, upload a file, and download the converted result. Image and text-based conversions run in the browser now. Office, PDF, video, audio, OCR, ebook, and archive jobs are packaged as realistic conversion requests ready for a backend worker.</p></div>
         <div class="converter-layout">
           <aside class="tool-list" id="toolList"></aside>
-          <article class="panel converter-panel">
+          <article class="panel converter-panel interactive-panel" data-panel="Converter">
             <h3 id="selectedTool">JPG to PNG</h3>
             <input id="convertInput" type="file" />
             <button class="btn primary full" id="convertBtn">Convert Now</button>
