@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShareFlow — Working File Sharing & Converter</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero" id="top">
+      <nav class="nav">
+        <a class="logo" href="#top">ShareFlow</a>
+        <div class="nav-links">
+          <a href="#upload">Upload</a><a href="#retrieve">Retrieve</a><a href="#live">Live Share</a><a href="#convert">Convert</a>
+        </div>
+      </nav>
+      <section class="hero-content">
+        <p class="eyebrow">Working browser MVP</p>
+        <h1>Share files, retrieve by code, live-share, and convert formats.</h1>
+        <p class="hero-copy">A colorful single-page app with local browser storage, retrieval codes, QR links, tab-to-tab live sharing, clipboard sync, and client-side conversion demos.</p>
+        <div class="hero-actions"><a class="btn primary" href="#upload">Start Uploading</a><a class="btn secondary" href="#convert">Open Converter</a></div>
+      </section>
+    </header>
+
+    <main>
+      <section class="section dashboard">
+        <article class="stat"><strong id="storedCount">0</strong><span>Stored files</span></article>
+        <article class="stat"><strong id="historyCount">0</strong><span>Conversions</span></article>
+        <article class="stat"><strong id="sessionStatus">Offline</strong><span>Live session</span></article>
+      </section>
+
+      <section class="section grid two" id="upload">
+        <article class="panel">
+          <p class="eyebrow">File sharing</p><h2>Upload Files</h2>
+          <label class="drop-zone" id="dropZone"><input id="fileInput" type="file" multiple /> <span>📁 Drag files here or click to browse</span><small>Images, videos, PDFs, Office, ZIP, audio, or any file</small></label>
+          <button class="btn primary full" id="saveFiles">Generate retrieval codes</button>
+          <div id="uploadResults" class="results"></div>
+        </article>
+        <article class="panel" id="retrieve">
+          <p class="eyebrow">Retrieve</p><h2>Download by Code</h2>
+          <div class="inline-form"><input id="retrieveCode" placeholder="Enter code e.g. AB34ZX" maxlength="6" /><button class="btn primary" id="retrieveBtn">Retrieve</button></div>
+          <div id="retrieveResult" class="results empty">No file loaded yet.</div>
+        </article>
+      </section>
+
+      <section class="section grid two" id="live">
+        <article class="panel live-panel">
+          <p class="eyebrow">Live sharing</p><h2>AirDrop-style Session</h2>
+          <div class="inline-form"><input id="sessionCode" placeholder="Session code" maxlength="6" /><button class="btn primary" id="createSession">Create</button><button class="btn secondary dark" id="joinSession">Join</button></div>
+          <div class="session-card"><strong id="activeSession">No session</strong><span id="sessionHint">Create a session, then open another tab and join with the same code.</span></div>
+          <label class="drop-zone compact"><input id="liveFileInput" type="file" multiple /><span>⚡ Send files to connected tabs</span></label>
+          <textarea id="clipboardText" placeholder="Type clipboard text to broadcast live..."></textarea>
+          <button class="btn primary full" id="sendClipboard">Send Clipboard</button>
+        </article>
+        <article class="panel">
+          <p class="eyebrow">Incoming</p><h2>Live Inbox</h2>
+          <div id="liveInbox" class="results empty">No live files or clipboard messages yet.</div>
+        </article>
+      </section>
+
+      <section class="section" id="convert">
+        <div class="section-heading"><p class="eyebrow">Converters</p><h2>PDF & File Converter Suite</h2><p>Choose a tool, upload a file, and download the converted result. Image and text-based conversions run fully in-browser; server-grade Office/PDF/media conversions are represented as downloadable job manifests for backend processing.</p></div>
+        <div class="converter-layout">
+          <aside class="tool-list" id="toolList"></aside>
+          <article class="panel converter-panel">
+            <h3 id="selectedTool">JPG to PNG</h3>
+            <input id="convertInput" type="file" />
+            <button class="btn primary full" id="convertBtn">Convert Now</button>
+            <div id="convertResult" class="results empty">Select a conversion tool and upload a file.</div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">Built as a working frontend MVP. Add Node.js workers, S3, MongoDB, WebRTC signaling, LibreOffice, FFmpeg, and Tesseract for production-grade cross-device and all-format conversion.</footer>
+    <script src="app.js"></script>
+  </body>
+</html>
