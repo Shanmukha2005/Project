@@ -17,7 +17,7 @@
       <section class="hero-content">
         <p class="eyebrow">Working browser MVP</p>
         <h1>Share files, retrieve by code, live-share, and convert formats.</h1>
-        <p class="hero-copy">A colorful single-page app with local browser storage, retrieval codes, QR links, tab-to-tab live sharing, clipboard sync, and client-side conversion demos.</p>
+        <p class="hero-copy">A responsive web app with drag-and-drop upload, stored files, retrieval codes, QR share links, tab-to-tab live sharing, clipboard sync, and real browser conversions where possible.</p>
         <div class="hero-actions"><a class="btn primary" href="#upload">Start Uploading</a><a class="btn secondary" href="#convert">Open Converter</a></div>
       </section>
     </header>
@@ -33,7 +33,7 @@
         <article class="panel">
           <p class="eyebrow">File sharing</p><h2>Upload Files</h2>
           <label class="drop-zone" id="dropZone"><input id="fileInput" type="file" multiple /> <span>📁 Drag files here or click to browse</span><small>Images, videos, PDFs, Office, ZIP, audio, or any file</small></label>
-          <button class="btn primary full" id="saveFiles">Generate retrieval codes</button>
+          <button class="btn primary full" id="saveFiles">Upload & generate retrieval codes</button>
           <div id="uploadResults" class="results"></div>
         </article>
         <article class="panel" id="retrieve">
@@ -46,7 +46,7 @@
       <section class="section grid two" id="live">
         <article class="panel live-panel">
           <p class="eyebrow">Live sharing</p><h2>AirDrop-style Session</h2>
-          <div class="inline-form"><input id="sessionCode" placeholder="Session code" maxlength="6" /><button class="btn primary" id="createSession">Create</button><button class="btn secondary dark" id="joinSession">Join</button></div>
+          <div class="inline-form"><input id="sessionCode" placeholder="Session code" maxlength="6" /><button class="btn primary" id="createSession">Create</button><button class="btn neutral" id="joinSession">Join</button></div>
           <div class="session-card"><strong id="activeSession">No session</strong><span id="sessionHint">Create a session, then open another tab and join with the same code.</span></div>
           <label class="drop-zone compact"><input id="liveFileInput" type="file" multiple /><span>⚡ Send files to connected tabs</span></label>
           <textarea id="clipboardText" placeholder="Type clipboard text to broadcast live..."></textarea>
@@ -59,7 +59,7 @@
       </section>
 
       <section class="section" id="convert">
-        <div class="section-heading"><p class="eyebrow">Converters</p><h2>PDF & File Converter Suite</h2><p>Choose a tool, upload a file, and download the converted result. Image and text-based conversions run fully in-browser; server-grade Office/PDF/media conversions are represented as downloadable job manifests for backend processing.</p></div>
+        <div class="section-heading"><p class="eyebrow">Converters</p><h2>PDF & File Converter Suite</h2><p>Choose a tool, upload a file, and download the converted result. Image and text-based conversions run in the browser now. Office, PDF, video, audio, OCR, ebook, and archive jobs are packaged as realistic conversion requests ready for a backend worker.</p></div>
         <div class="converter-layout">
           <aside class="tool-list" id="toolList"></aside>
           <article class="panel converter-panel">
@@ -72,7 +72,7 @@
       </section>
     </main>
 
-    <footer class="footer">Built as a working frontend MVP. Add Node.js workers, S3, MongoDB, WebRTC signaling, LibreOffice, FFmpeg, and Tesseract for production-grade cross-device and all-format conversion.</footer>
+    <footer class="footer">Working responsive frontend MVP: upload, retrieve, share, live-send, and convert browser-supported formats. Add Node.js workers, S3, MongoDB, WebRTC signaling, LibreOffice, FFmpeg, and Tesseract for production all-format processing.</footer>
     <script src="app.js"></script>
   </body>
 </html>

@@ -1,31 +1,351 @@
 const DB_NAME = 'shareflow-db';
 const STORE = 'files';
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const $ = (id) => document.getElementById(id);
-const tools = ['JPG to PNG','PNG to JPG','PNG to WebP','WebP to PNG','Text to PDF','PDF to Text','Word to PDF','PDF to Word','PDF to PPT','PPT to PDF','PDF to Excel','Excel to PDF','PDF Merge','PDF Split','Compress PDF','Rotate PDF','Unlock PDF','Protect PDF','Watermark PDF','OCR PDF','HTML to PDF','PDF to HTML','Word to JPG','Word to HTML','Word to TXT','Word to ODT','Word to EPUB','Excel to CSV','CSV to Excel','Excel to HTML','Excel to JSON','PPT to JPG','PPT to PNG','PPT to Video','PPT to HTML','MP4 to AVI','AVI to MP4','MKV to MP4','MOV to MP4','Compress Video','Extract Audio','MP3 to WAV','WAV to MP3','AAC to MP3','FLAC to MP3','EPUB to PDF','PDF to EPUB','MOBI to PDF','ZIP','RAR','7ZIP','TAR','GZIP'];
-let db; let selectedTool = tools[0]; let channel;
 
-function openDb(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,1);request.onupgradeneeded=()=>request.result.createObjectStore(STORE,{keyPath:'code'});request.onsuccess=()=>{db=request.result;resolve(db)};request.onerror=()=>reject(request.error)})}
-function tx(mode='readonly'){return db.transaction(STORE,mode).objectStore(STORE)}
-function put(file){return new Promise((resolve,reject)=>{const req=tx('readwrite').put(file);req.onsuccess=resolve;req.onerror=()=>reject(req.error)})}
-function get(code){return new Promise((resolve,reject)=>{const req=tx().get(code);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
-function del(code){return new Promise((resolve,reject)=>{const req=tx('readwrite').delete(code);req.onsuccess=resolve;req.onerror=()=>reject(req.error)})}
-function all(){return new Promise((resolve,reject)=>{const req=tx().getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
-function code(){return Array.from({length:6},()=> 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('')}
-function downloadBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function shareUrl(c){return `${location.origin}${location.pathname}?code=${c}`}
-function qr(c){return `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(shareUrl(c))}`}
-async function updateStats(){const files=await all();$('storedCount').textContent=files.length;$('historyCount').textContent=localStorage.getItem('shareflow-history')||0}
-function renderFile(file, target){const url=URL.createObjectURL(file.blob);const preview=file.type.startsWith('image/')?`<img class="preview" src="${url}" alt="${file.name}">`:file.type.startsWith('video/')?`<video class="preview" src="${url}" controls></video>`:file.type.startsWith('audio/')?`<audio src="${url}" controls></audio>`:`<p>${file.type||'Unknown file type'} · ${(file.size/1024).toFixed(1)} KB</p>`;target.innerHTML=`<article class="file-card"><header><strong>${file.name}</strong><span class="code">${file.code}</span></header>${preview}<img class="qr" src="${qr(file.code)}" alt="QR code for ${file.code}"><div class="actions"><a href="${url}" download="${file.name}">Download</a><button data-copy="${file.code}">Copy Code</button><button data-delete="${file.code}">Delete</button></div></article>`}
-async function saveFiles(files){$('uploadResults').innerHTML='';for(const blob of files){const item={code:code(),name:blob.name,type:blob.type,size:blob.size,createdAt:new Date().toISOString(),blob};await put(item);const wrap=document.createElement('div');renderFile(item,wrap);$('uploadResults').appendChild(wrap)}updateStats()}
-async function retrieve(){const c=$('retrieveCode').value.trim().toUpperCase();const file=await get(c);if(!file){$('retrieveResult').className='results empty';$('retrieveResult').textContent='No file found for that retrieval code.';return}$('retrieveResult').className='results';renderFile(file,$('retrieveResult'))}
-function setupLive(session){if(channel)channel.close();channel=new BroadcastChannel(`shareflow-${session}`);$('activeSession').textContent=session;$('sessionStatus').textContent='Online';$('sessionHint').textContent='Connected. Open another tab on this same site and join this code for live transfer.';channel.onmessage=({data})=>{if(data.kind==='clipboard')addInbox(`<article class="file-card"><strong>Clipboard</strong><p>${escapeHtml(data.text)}</p></article>`);if(data.kind==='file'){const blob=data.blob;const url=URL.createObjectURL(blob);addInbox(`<article class="file-card"><header><strong>${data.name}</strong><span>${(data.size/1024).toFixed(1)} KB</span></header><div class="actions"><a href="${url}" download="${data.name}">Download live file</a></div></article>`)}}}
-function addInbox(html){$('liveInbox').className='results';$('liveInbox').insertAdjacentHTML('afterbegin',html)}
-function escapeHtml(s){return s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
-function renderTools(){$('toolList').innerHTML=tools.map(t=>`<button class="tool-button ${t===selectedTool?'active':''}" data-tool="${t}">${t}</button>`).join('')}
-async function imageConvert(file,type,ext){const bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;canvas.getContext('2d').drawImage(bitmap,0,0);return new Promise(resolve=>canvas.toBlob(blob=>resolve({blob,name:file.name.replace(/\.[^.]+$/,` converted.${ext}`)}),type,.92))}
-async function convert(){const file=$('convertInput').files[0];if(!file){$('convertResult').textContent='Please choose a file first.';return}let output;if(selectedTool.includes('PNG')&&file.type.startsWith('image/'))output=await imageConvert(file,'image/png','png');else if(selectedTool.includes('JPG')&&file.type.startsWith('image/'))output=await imageConvert(file,'image/jpeg','jpg');else if(selectedTool.includes('WebP')&&file.type.startsWith('image/'))output=await imageConvert(file,'image/webp','webp');else if(selectedTool==='Word to TXT'||selectedTool==='PDF to Text'){output={blob:new Blob([await file.text().catch(()=>`Text extraction placeholder for ${file.name}`)],{type:'text/plain'}),name:file.name.replace(/\.[^.]+$/,'.txt')}}else{const manifest={tool:selectedTool,input:file.name,status:'queued-for-backend-worker',message:'This browser MVP captured the conversion request. Production conversion needs the Node.js worker stack with LibreOffice, FFmpeg, Poppler, Ghostscript, Tesseract, Pandoc, and pdfcpu.'};output={blob:new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}),name:`${selectedTool.replaceAll(' ','-').toLowerCase()}-job.json`}}localStorage.setItem('shareflow-history',Number(localStorage.getItem('shareflow-history')||0)+1);$('convertResult').className='results';$('convertResult').innerHTML=`<article class="file-card"><strong>Converted: ${output.name}</strong><p>${selectedTool} completed.</p><div class="actions"><button id="downloadConverted">Download result</button></div></article>`;$('downloadConverted').onclick=()=>downloadBlob(output.blob,output.name);updateStats()}
+const tools = [
+  'JPG to PNG', 'PNG to JPG', 'PNG to WebP', 'WebP to PNG', 'Text to PDF', 'PDF to Text',
+  'Word to PDF', 'PDF to Word', 'PDF to PPT', 'PPT to PDF', 'PDF to Excel', 'Excel to PDF',
+  'PDF Merge', 'PDF Split', 'Compress PDF', 'Rotate PDF', 'Unlock PDF', 'Protect PDF', 'Watermark PDF', 'OCR PDF',
+  'HTML to PDF', 'PDF to HTML', 'Word to JPG', 'Word to HTML', 'Word to TXT', 'Word to ODT', 'Word to EPUB',
+  'Excel to CSV', 'CSV to Excel', 'Excel to HTML', 'Excel to JSON', 'PPT to JPG', 'PPT to PNG', 'PPT to Video', 'PPT to HTML',
+  'MP4 to AVI', 'AVI to MP4', 'MKV to MP4', 'MOV to MP4', 'Compress Video', 'Extract Audio',
+  'MP3 to WAV', 'WAV to MP3', 'AAC to MP3', 'FLAC to MP3', 'EPUB to PDF', 'PDF to EPUB', 'MOBI to PDF',
+  'ZIP', 'RAR', '7ZIP', 'TAR', 'GZIP'
+];
 
-document.addEventListener('click',async(e)=>{if(e.target.dataset.copy)navigator.clipboard?.writeText(e.target.dataset.copy);if(e.target.dataset.delete){await del(e.target.dataset.delete);e.target.closest('.file-card').remove();updateStats()}if(e.target.dataset.tool){selectedTool=e.target.dataset.tool;$('selectedTool').textContent=selectedTool;renderTools()}});
-$('saveFiles').onclick=()=>$('fileInput').files.length&&saveFiles($('fileInput').files);$('retrieveBtn').onclick=retrieve;$('createSession').onclick=()=>{const c=code();$('sessionCode').value=c;setupLive(c)};$('joinSession').onclick=()=>setupLive($('sessionCode').value.trim().toUpperCase());$('liveFileInput').onchange=()=>{if(!channel)return alert('Create or join a session first.');[...$('liveFileInput').files].forEach(file=>channel.postMessage({kind:'file',name:file.name,size:file.size,blob:file}))};$('sendClipboard').onclick=()=>channel?channel.postMessage({kind:'clipboard',text:$('clipboardText').value}):alert('Create or join a session first.');$('convertBtn').onclick=convert;
-$('dropZone').ondragover=(e)=>{e.preventDefault();$('dropZone').classList.add('hover')};$('dropZone').ondrop=(e)=>{e.preventDefault();saveFiles(e.dataTransfer.files)};
-openDb().then(()=>{renderTools();updateStats();const params=new URLSearchParams(location.search);if(params.get('code')){$('retrieveCode').value=params.get('code').toUpperCase();retrieve();location.hash='retrieve'}});
+let db;
+let selectedTool = tools[0];
+let liveChannel;
+let activeSessionCode = '';
+
+function toast(message) {
+  const node = document.createElement('div');
+  node.className = 'toast';
+  node.textContent = message;
+  document.body.appendChild(node);
+  setTimeout(() => node.remove(), 2600);
+}
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: 'code' });
+    request.onsuccess = () => { db = request.result; resolve(db); };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function store(mode = 'readonly') {
+  return db.transaction(STORE, mode).objectStore(STORE);
+}
+
+function saveRecord(record) {
+  return new Promise((resolve, reject) => {
+    const request = store('readwrite').put(record);
+    request.onsuccess = resolve;
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function getRecord(code) {
+  return new Promise((resolve, reject) => {
+    const request = store().get(code);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function deleteRecord(code) {
+  return new Promise((resolve, reject) => {
+    const request = store('readwrite').delete(code);
+    request.onsuccess = resolve;
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function getAllRecords() {
+  return new Promise((resolve, reject) => {
+    const request = store().getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function createCode() {
+  return Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function shareUrl(code) {
+  return `${location.origin}${location.pathname}?code=${code}`;
+}
+
+function qrUrl(code) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(shareUrl(code))}`;
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+function previewMarkup(file, url) {
+  if (file.type.startsWith('image/')) return `<img class="preview" src="${url}" alt="${file.name}">`;
+  if (file.type.startsWith('video/')) return `<video class="preview" src="${url}" controls></video>`;
+  if (file.type.startsWith('audio/')) return `<audio src="${url}" controls></audio>`;
+  if (file.type === 'application/pdf') return `<iframe class="preview" src="${url}" title="${file.name}"></iframe>`;
+  return `<p class="file-meta">Preview is not available for this file type, but download works.</p>`;
+}
+
+function renderFileCard(file, target) {
+  const url = URL.createObjectURL(file.blob);
+  target.innerHTML = `
+    <article class="file-card">
+      <header>
+        <strong>${file.name}</strong>
+        <span class="code">${file.code}</span>
+      </header>
+      <span class="file-meta">${file.type || 'Unknown type'} · ${formatSize(file.size)} · ${new Date(file.createdAt).toLocaleString()}</span>
+      ${previewMarkup(file, url)}
+      <div class="qr-row">
+        <img class="qr" src="${qrUrl(file.code)}" alt="QR code for ${file.code}">
+        <span class="file-meta">Scan this QR or open ${shareUrl(file.code)}</span>
+      </div>
+      <div class="actions">
+        <a href="${url}" download="${file.name}">Download</a>
+        <button data-copy-code="${file.code}">Copy Code</button>
+        <button data-copy-link="${file.code}">Copy Link</button>
+        <button data-delete="${file.code}">Delete</button>
+      </div>
+    </article>`;
+}
+
+async function updateStats() {
+  const files = await getAllRecords();
+  $('storedCount').textContent = files.length;
+  $('historyCount').textContent = localStorage.getItem('shareflow-history') || 0;
+}
+
+async function uploadFiles(fileList) {
+  const files = [...fileList];
+  if (!files.length) return;
+  $('uploadResults').innerHTML = '';
+
+  for (const blob of files) {
+    const record = {
+      code: createCode(),
+      name: blob.name,
+      type: blob.type,
+      size: blob.size,
+      createdAt: new Date().toISOString(),
+      blob
+    };
+    await saveRecord(record);
+    const holder = document.createElement('div');
+    renderFileCard(record, holder);
+    $('uploadResults').appendChild(holder);
+  }
+
+  toast(`${files.length} file${files.length > 1 ? 's' : ''} uploaded and coded`);
+  updateStats();
+}
+
+async function retrieveFile() {
+  const lookupCode = $('retrieveCode').value.trim().toUpperCase();
+  if (!lookupCode) return toast('Enter a retrieval code first');
+
+  const file = await getRecord(lookupCode);
+  if (!file) {
+    $('retrieveResult').className = 'results empty';
+    $('retrieveResult').textContent = 'No file found for that retrieval code.';
+    return;
+  }
+
+  $('retrieveResult').className = 'results';
+  renderFileCard(file, $('retrieveResult'));
+  toast('Shared file retrieved');
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"]/g, (match) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[match]));
+}
+
+function addLiveInbox(html) {
+  $('liveInbox').className = 'results';
+  $('liveInbox').insertAdjacentHTML('afterbegin', html);
+}
+
+function connectLiveSession(sessionCode) {
+  if (!sessionCode) return toast('Enter or create a session code');
+  if (liveChannel) liveChannel.close();
+
+  activeSessionCode = sessionCode;
+  liveChannel = new BroadcastChannel(`shareflow-${sessionCode}`);
+  $('activeSession').textContent = sessionCode;
+  $('sessionStatus').textContent = 'Online';
+  $('sessionHint').textContent = 'Connected. Open this app in another tab and join the same code to receive live files.';
+
+  liveChannel.onmessage = ({ data }) => {
+    if (data.kind === 'clipboard') {
+      addLiveInbox(`<article class="file-card"><strong>Clipboard message</strong><p>${escapeHtml(data.text)}</p></article>`);
+    }
+
+    if (data.kind === 'file') {
+      const url = URL.createObjectURL(data.blob);
+      addLiveInbox(`
+        <article class="file-card">
+          <header><strong>${data.name}</strong><span>${formatSize(data.size)}</span></header>
+          <span class="file-meta">Received through live session ${activeSessionCode}</span>
+          <div class="actions"><a href="${url}" download="${data.name}">Download live file</a></div>
+        </article>`);
+    }
+  };
+
+  toast(`Live session ${sessionCode} connected`);
+}
+
+function renderTools(filter = '') {
+  const visibleTools = tools.filter((tool) => tool.toLowerCase().includes(filter.toLowerCase()));
+  $('toolList').innerHTML = `
+    <input class="tool-search" id="toolSearch" placeholder="Search converters..." value="${filter}">
+    ${visibleTools.map((tool) => `<button class="tool-button ${tool === selectedTool ? 'active' : ''}" data-tool="${tool}">${tool}</button>`).join('')}`;
+  $('toolSearch').oninput = (event) => renderTools(event.target.value);
+}
+
+async function convertImage(file, type, extension) {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve({ blob, name: file.name.replace(/\.[^.]+$/, `.${extension}`) }), type, 0.92);
+  });
+}
+
+function backendManifest(file) {
+  return {
+    tool: selectedTool,
+    input: { name: file.name, type: file.type, size: file.size },
+    status: 'ready-for-backend-worker',
+    requiredBackend: ['Node.js API', 'job queue', 'object storage', 'conversion worker container'],
+    message: 'This frontend creates the real upload/conversion request. A production backend should execute the requested tool with LibreOffice, FFmpeg, Poppler, Ghostscript, Tesseract, Pandoc, or pdfcpu.'
+  };
+}
+
+async function convertFile() {
+  const file = $('convertInput').files[0];
+  if (!file) return toast('Choose a file to convert');
+
+  let output;
+  if (selectedTool.includes('PNG') && file.type.startsWith('image/')) {
+    output = await convertImage(file, 'image/png', 'png');
+  } else if (selectedTool.includes('JPG') && file.type.startsWith('image/')) {
+    output = await convertImage(file, 'image/jpeg', 'jpg');
+  } else if (selectedTool.includes('WebP') && file.type.startsWith('image/')) {
+    output = await convertImage(file, 'image/webp', 'webp');
+  } else if (selectedTool === 'Word to TXT' || selectedTool === 'PDF to Text') {
+    const text = await file.text().catch(() => `Text extraction placeholder for ${file.name}`);
+    output = { blob: new Blob([text], { type: 'text/plain' }), name: file.name.replace(/\.[^.]+$/, '.txt') };
+  } else {
+    output = {
+      blob: new Blob([JSON.stringify(backendManifest(file), null, 2)], { type: 'application/json' }),
+      name: `${selectedTool.replaceAll(' ', '-').toLowerCase()}-job.json`
+    };
+  }
+
+  localStorage.setItem('shareflow-history', Number(localStorage.getItem('shareflow-history') || 0) + 1);
+  $('convertResult').className = 'results';
+  $('convertResult').innerHTML = `
+    <article class="file-card">
+      <strong>Converted: ${output.name}</strong>
+      <p class="file-meta">${selectedTool} finished. Download the result below.</p>
+      <div class="actions"><button id="downloadConverted">Download result</button></div>
+    </article>`;
+  $('downloadConverted').onclick = () => downloadBlob(output.blob, output.name);
+  updateStats();
+  toast('Conversion ready');
+}
+
+function bindEvents() {
+  $('saveFiles').onclick = () => uploadFiles($('fileInput').files);
+  $('retrieveBtn').onclick = retrieveFile;
+  $('retrieveCode').oninput = (event) => { event.target.value = event.target.value.toUpperCase(); };
+  $('retrieveCode').onkeydown = (event) => { if (event.key === 'Enter') retrieveFile(); };
+
+  $('createSession').onclick = () => {
+    const session = createCode();
+    $('sessionCode').value = session;
+    connectLiveSession(session);
+  };
+  $('joinSession').onclick = () => connectLiveSession($('sessionCode').value.trim().toUpperCase());
+  $('sessionCode').oninput = (event) => { event.target.value = event.target.value.toUpperCase(); };
+
+  $('liveFileInput').onchange = () => {
+    if (!liveChannel) return toast('Create or join a session first');
+    [...$('liveFileInput').files].forEach((file) => liveChannel.postMessage({ kind: 'file', name: file.name, size: file.size, blob: file }));
+    toast('Live file sent');
+  };
+
+  $('sendClipboard').onclick = () => {
+    if (!liveChannel) return toast('Create or join a session first');
+    liveChannel.postMessage({ kind: 'clipboard', text: $('clipboardText').value });
+    toast('Clipboard text sent');
+  };
+
+  $('convertBtn').onclick = convertFile;
+
+  $('dropZone').ondragover = (event) => { event.preventDefault(); $('dropZone').classList.add('hover'); };
+  $('dropZone').ondragleave = () => $('dropZone').classList.remove('hover');
+  $('dropZone').ondrop = (event) => {
+    event.preventDefault();
+    $('dropZone').classList.remove('hover');
+    uploadFiles(event.dataTransfer.files);
+  };
+
+  document.addEventListener('click', async (event) => {
+    if (event.target.dataset.copyCode) {
+      await navigator.clipboard?.writeText(event.target.dataset.copyCode);
+      toast('Code copied');
+    }
+    if (event.target.dataset.copyLink) {
+      await navigator.clipboard?.writeText(shareUrl(event.target.dataset.copyLink));
+      toast('Share link copied');
+    }
+    if (event.target.dataset.delete) {
+      await deleteRecord(event.target.dataset.delete);
+      event.target.closest('.file-card').remove();
+      updateStats();
+      toast('File deleted');
+    }
+    if (event.target.dataset.tool) {
+      selectedTool = event.target.dataset.tool;
+      $('selectedTool').textContent = selectedTool;
+      renderTools($('toolSearch')?.value || '');
+    }
+  });
+}
+
+openDb().then(() => {
+  renderTools();
+  bindEvents();
+  updateStats();
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('code')) {
+    $('retrieveCode').value = params.get('code').toUpperCase();
+    retrieveFile();
+    location.hash = 'retrieve';
+  }
+});

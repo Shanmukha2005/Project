@@ -4,13 +4,13 @@ ShareFlow is now a working browser-based MVP for instant file sharing, retrieval
 
 ## What Works Today
 
-- Upload one or many files directly in the browser.
+- Upload one or many files directly in the browser by choosing files or dragging them into the upload drop zone.
 - Store uploaded files in IndexedDB so they remain available after refresh on the same browser/device.
 - Generate six-character retrieval codes for every uploaded file.
-- Retrieve files by code, preview images/video/audio, download files, copy codes, and delete stored files.
+- Retrieve files by code, preview images/video/audio/PDF files when the browser supports it, download files, copy codes, copy share links, and delete stored files.
 - Generate QR-code images for retrieval links using the public QR Server image endpoint.
-- Create or join live sessions by six-character session code.
-- Send files and clipboard text live between tabs on the same origin with `BroadcastChannel`.
+- Create or join live sessions by six-character session code with visible online/offline status.
+- Send files and clipboard text live between tabs on the same origin with `BroadcastChannel`, then download received live files from the live inbox.
 - Run real in-browser image conversions for PNG, JPG/JPEG, and WebP through Canvas.
 - Extract text for plain text-compatible files where the browser can read the input.
 - Produce downloadable backend job manifests for heavy Office, PDF, video, audio, OCR, ebook, and archive conversions.
@@ -50,6 +50,10 @@ ShareFlow
     ├── Pandoc
     └── pdfcpu/PDF-lib
 ```
+
+## Current Frontend Scope
+
+The app is intentionally realistic about what can run without a backend: local uploads, retrieval, previews, downloads, QR links, tab live-send, and Canvas image conversion work now. Cross-device WebRTC, server-side storage, Office/PDF/media/OCR processing, authentication, and security scanning need the backend milestones below.
 
 ## Next Backend Milestones
 
